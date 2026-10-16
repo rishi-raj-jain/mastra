@@ -1429,6 +1429,7 @@ export class InternalMastraMCPClient extends MastraBase {
     arguments?: Record<string, unknown>;
     driver: DeliveryDriver;
     options?: MCPEventSubscribeOptions;
+    notice?: MastraError;
   }): Promise<MCPEventSubscription> {
     return await EventSubscription.start({
       port: this.eventsPort,
@@ -1437,6 +1438,7 @@ export class InternalMastraMCPClient extends MastraBase {
       arguments: config.arguments,
       driver: config.driver,
       options: config.options,
+      notice: config.notice,
       defaultStreamOpenTimeoutMs: this.timeout,
       onOpen: opened => {
         this.eventSubscriptions.add(opened);
