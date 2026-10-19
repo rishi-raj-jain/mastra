@@ -18,7 +18,13 @@ import {
   UnsubscribeEventsRequestParamsSchema,
   UnsubscribeEventsResultSchema,
 } from '../../shared/events';
-import type { EventOccurrence, ListEventsResult, PollEventsResult, StreamEventsResult } from '../../shared/events';
+import type {
+  EventOccurrence,
+  ListEventsResult,
+  PollEventsResult,
+  StreamEventsResult,
+  SubscribeEventsRequestParams,
+} from '../../shared/events';
 import { principalOf } from '../request';
 import { toDescriptor, toTimestamp } from './registry';
 import type { RegisteredEvent, ServerEventRegistry } from './registry';
@@ -189,7 +195,8 @@ export function registerEventHandlers(server: Server, deps: EventHandlerDeps): v
     EVENTS_METHODS.subscribe,
     { params: SubscribeEventsRequestParamsSchema, result: SubscribeEventsResultSchema },
     (params, ctx) =>
-      deps.trace(server, EVENTS_METHODS.subscribe, params, ctx, async requestContext => {
+      // The signing secret must not reach span input and the exporters behind it.
+      deps.trace(server, EVENTS_METHODS.subscribe, withoutSecret(params), ctx, async requestContext => {
         const principal = requirePrincipal(ctx, requestContext);
         const event = registry.resolve(params.name, 'webhook');
         const args = await registry.validateArguments(event, params.arguments ?? {});
@@ -217,6 +224,10 @@ function requirePrincipal(ctx: ServerContext, requestContext: RequestContext): s
     throw new ProtocolError(EVENTS_ERROR_CODES.Forbidden, 'Webhook subscriptions require an authenticated caller');
   }
   return principalOf(ctx, requestContext);
+}
+
+function withoutSecret(params: SubscribeEventsRequestParams): Record<string, unknown> {
+  return { ...params, delivery: { ...params.delivery, secret: '[redacted]' } };
 }
 
 function bufferOf(event: RegisteredEvent) {
