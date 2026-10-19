@@ -1,5 +1,27 @@
 # @mastra/core
 
+## 1.79.0-alpha.5
+
+### Patch Changes
+
+- Fixed agent runs that kept calling the model and tools after losing their thread lease. When lease renewal fails, the run is now aborted instead of running beside the run that took over the thread on another process. Applies to regular, durable and evented agents. ([#27581](https://github.com/mastra-ai/mastra/pull/27581))
+
+- Fixed DurableAgent ignoring the reserved `mastra__threadId` and `mastra__resourceId` request-context keys. Durable and evented agents now route memory to the thread and resource set on the request context, as the regular Agent does, instead of to the thread or resource named in the call's `memory` options. ([#27575](https://github.com/mastra-ai/mastra/pull/27575))
+
+- Fixed durable and evented agents ignoring `generateTitle.emitEvent` and `onTitleGenerated`. Streams from these agents now include the transient `data-thread-title` chunk before `finish`, and `memory.onTitleGenerated` is called with the saved title, matching the standard agent. ([#27606](https://github.com/mastra-ai/mastra/pull/27606))
+
+- Fixed output stream processors that hold parts (such as `BatchPartsProcessor` and `PIIDetector`) re-emitting or leaking text when a model call failed. When a call is retried, the dropped attempt's text is no longer repeated before the retry's reply. When a call errors or is aborted, the text it was holding is dropped instead of being sent, and the error or abort still reaches the caller. Parts a processor holds back and sends again now reach the stream instead of getting stuck, so the reply's `text-end` is no longer lost. ([#27615](https://github.com/mastra-ai/mastra/pull/27615))
+
+- Added `AgentController.setThreadModel` to change a session thread's model without recreating the session. A running session bound to the thread switches immediately; otherwise the model is saved for its next run. ([#27591](https://github.com/mastra-ai/mastra/pull/27591))
+
+  ```ts
+  const { live } = await controller.setThreadModel({
+    resourceId: 'session-1',
+    threadId: 'thread-1',
+    modelId: 'openai/gpt-5.6',
+  });
+  ```
+
 ## 1.79.0-alpha.4
 
 ### Minor Changes
